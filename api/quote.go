@@ -29,6 +29,7 @@ func (i *Instance) Quote() (v Quote) {
 	i.RLock()
 	req, _ := http.NewRequest("GET", baseURL+"venues/"+i.venue+"/stocks/"+i.symbol+"/quote", nil)
 	i.RUnlock()
+	req.Header = i.h
 	res, httpErr := i.c.Do(req)
 	i.setErr(httpErr)
 

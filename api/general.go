@@ -109,7 +109,7 @@ func NewInstance(APIKey, account, venue, symbol string) *Instance {
 
 //NewTestInstance calls NewInstance with useful presets for package testing.
 func NewTestInstance() *Instance {
-	return NewInstance("", "", "TESTEX", "FOOBAR")
+	return NewInstance("", "EXB123456", "TESTEX", "FOOBAR")
 }
 
 //Heartbeat checks if the API is up and returns true if it is.
@@ -133,6 +133,7 @@ func apiError(str string, status string) error {
 
 func (i *Instance) heartbeat(urlExtension string) bool {
 	req, _ := http.NewRequest("GET", baseURL+urlExtension, nil)
+	req.Header = i.h
 	res, httpErr := i.c.Do(req)
 	i.setErr(httpErr)
 

@@ -11,6 +11,7 @@ import (
 type orderType string
 type orderDirection string
 
+//Constants used for order creation.
 const (
 	Limit             orderType = "limit"
 	Market            orderType = "market"
@@ -31,12 +32,14 @@ type orderRequest struct {
 	OrderType orderType      `json:"orderType"`
 }
 
+//The Fill struct represents a (partial) fulfillment of an order.
 type Fill struct {
 	Price    int       `json:"price"`
 	Quantity int       `json:"qty"`
 	TS       time.Time `json:"ts"`
 }
 
+//The Order struct contains information about an order.
 type Order struct {
 	Account          string         `json:"account"`
 	Venue            string         `json:"venue"`
@@ -87,6 +90,7 @@ func (i *Instance) CancelOrder(ID int) (v Order) {
 	i.RLock()
 	req, _ := http.NewRequest("DELETE", baseURL+"venues/"+i.venue+"/stocks/"+i.symbol+"/orders/"+strconv.Itoa(ID), nil)
 	i.RUnlock()
+	req.Header = i.h
 	res, httpErr := i.c.Do(req)
 	i.setErr(httpErr)
 
@@ -110,6 +114,7 @@ func (i *Instance) OrderStatus(ID int) (v Order) {
 	i.RLock()
 	req, _ := http.NewRequest("GET", baseURL+"venues/"+i.venue+"/stocks/"+i.symbol+"/orders/"+strconv.Itoa(ID), nil)
 	i.RUnlock()
+	req.Header = i.h
 	res, httpErr := i.c.Do(req)
 	i.setErr(httpErr)
 
@@ -139,6 +144,7 @@ func (i *Instance) AccountOrderStatus() []Order {
 	i.RLock()
 	req, _ := http.NewRequest("GET", baseURL+"venues/"+i.venue+"/accounts/"+i.account+"/orders", nil)
 	i.RUnlock()
+	req.Header = i.h
 	res, httpErr := i.c.Do(req)
 	i.setErr(httpErr)
 
@@ -165,6 +171,7 @@ func (i *Instance) StockOrderStatus() []Order {
 	i.RLock()
 	req, _ := http.NewRequest("GET", baseURL+"venues/"+i.venue+"/accounts/"+i.account+"/stocks/"+i.symbol+"/orders", nil)
 	i.RUnlock()
+	req.Header = i.h
 	res, httpErr := i.c.Do(req)
 	i.setErr(httpErr)
 

@@ -5,6 +5,7 @@ import (
 	"net/http"
 )
 
+//The Stock struct contains the name and the ticker symbol of a stock.
 type Stock struct {
 	Name   string `json:"name"`
 	Symbol string `json:"symbol"`
@@ -21,6 +22,7 @@ func (i *Instance) AvailableStocks() []Stock {
 	i.RLock()
 	req, _ := http.NewRequest("GET", baseURL+"venues/"+i.venue+"/stocks", nil)
 	i.RUnlock()
+	req.Header = i.h
 	res, httpErr := i.c.Do(req)
 	i.setErr(httpErr)
 

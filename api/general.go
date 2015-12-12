@@ -2,14 +2,9 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
-)
-
-const (
-	baseURL string = "https://api.stockfighter.io/ob/api/"
 )
 
 type err struct {
@@ -32,14 +27,16 @@ type Instance struct {
 	symbol  string
 }
 
-//setErr sets the error value on an instance only when the error isn't nil.
+//setErr sets the error value on an instance only when the error isn't nil. Returns true if error was set.
 //This is useful because we don't have to check if the error is nil before calling setErr() if we don't want a current error overwriten by a nil one.
-func (i *Instance) setErr(err error) {
+func (i *Instance) setErr(err error) bool {
 	if err != nil {
 		i.err.Lock()
 		i.err.v = err
 		i.err.Unlock()
+		return true
 	}
+	return false
 }
 
 //Err returns the last error of an API instance.
@@ -132,21 +129,7 @@ func apiError(str string, status string) error {
 }
 
 func (i *Instance) heartbeat(urlExtension string) bool {
-	req, _ := http.NewRequest("GET", baseURL+urlExtension, nil)
-	req.Header = i.h
-	res, httpErr := i.c.Do(req)
-	i.setErr(httpErr)
-
-	dec := json.NewDecoder(res.Body)
 	var v errorResult
-	jsonErr := dec.Decode(&v)
-	i.setErr(jsonErr)
-
-	if httpErr == nil && jsonErr == nil {
-		if !v.Ok {
-			i.setErr(apiError(v.Error, res.Status))
-		}
-		return v.Ok
-	}
-	return false
+	i.doHTTP("GET", baseURL+urlExtension, nil, &v)
+	return v.Ok
 }

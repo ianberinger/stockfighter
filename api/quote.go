@@ -1,9 +1,7 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
-	"net/http"
 	"time"
 )
 
@@ -29,22 +27,8 @@ type Quote struct {
 func (i *Instance) Quote() (v Quote) {
 	i.RLock()
 	url := fmt.Sprintf("%svenues/%s/stocks/%s/quote", baseURL, i.venue, i.symbol)
-	req, _ := http.NewRequest("GET", url, nil)
 	i.RUnlock()
-	req.Header = i.h
-	res, httpErr := i.c.Do(req)
-	i.setErr(httpErr)
 
-	dec := json.NewDecoder(res.Body)
-	var jsonErr error
-	if res.StatusCode == 200 {
-		jsonErr = dec.Decode(&v)
-	} else {
-		var v errorResult
-		jsonErr = dec.Decode(&v)
-		i.setErr(apiError(v.Error, res.Status))
-	}
-
-	i.setErr(jsonErr)
+	i.doHTTP("GET", url, nil, &v)
 	return
 }

@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"strconv"
 	"time"
 )
@@ -22,16 +21,6 @@ const (
 	Buy  orderDirection = "buy"
 	Sell orderDirection = "sell"
 )
-
-type orderRequest struct {
-	Account   string         `json:"account"`
-	Venue     string         `json:"venue"`
-	Symbol    string         `json:"symbol"`
-	Price     int            `json:"price"`
-	Quantity  int            `json:"qty"`
-	Direction orderDirection `json:"direction"`
-	OrderType orderType      `json:"orderType"`
-}
 
 //The Fill struct represents a (partial) fulfillment of an order.
 type Fill struct {
@@ -63,25 +52,13 @@ type Order struct {
 func (i *Instance) NewOrder(price int, quantity int, direction orderDirection, orderType orderType) (v Order) {
 	i.RLock()
 	b, jsonErr := json.Marshal(orderRequest{i.account, i.venue, i.symbol, price, quantity, direction, orderType})
-	i.setErr(jsonErr)
 	url := fmt.Sprintf("%svenues/%s/stocks/%s/orders", baseURL, i.venue, i.symbol)
 	i.RUnlock()
-	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(b))
-	req.Header = i.h
 
-	res, httpErr := i.c.Do(req)
-	i.setErr(httpErr)
-
-	dec := json.NewDecoder(res.Body)
-	if res.StatusCode == 200 {
-		jsonErr = dec.Decode(&v)
-	} else {
-		var v errorResult
-		jsonErr = dec.Decode(&v)
-		i.setErr(apiError(v.Error, res.Status))
+	if !i.setErr(jsonErr) {
+		i.doHTTP("POST", url, bytes.NewBuffer(b), &v)
 	}
 
-	i.setErr(jsonErr)
 	return
 }
 
@@ -90,23 +67,9 @@ func (i *Instance) NewOrder(price int, quantity int, direction orderDirection, o
 func (i *Instance) CancelOrder(ID int) (v Order) {
 	i.RLock()
 	url := fmt.Sprintf("%svenues/%s/stocks/%s/orders/%s", baseURL, i.venue, i.symbol, strconv.Itoa(ID))
-	req, _ := http.NewRequest("DELETE", url, nil)
 	i.RUnlock()
-	req.Header = i.h
-	res, httpErr := i.c.Do(req)
-	i.setErr(httpErr)
 
-	dec := json.NewDecoder(res.Body)
-	var jsonErr error
-	if res.StatusCode == 200 {
-		jsonErr = dec.Decode(&v)
-	} else {
-		var v errorResult
-		jsonErr = dec.Decode(&v)
-		i.setErr(apiError(v.Error, res.Status))
-	}
-
-	i.setErr(jsonErr)
+	i.doHTTP("DELETE", url, nil, &v)
 	return
 }
 
@@ -115,30 +78,10 @@ func (i *Instance) CancelOrder(ID int) (v Order) {
 func (i *Instance) OrderStatus(ID int) (v Order) {
 	i.RLock()
 	url := fmt.Sprintf("%svenues/%s/stocks/%s/orders/%s", baseURL, i.venue, i.symbol, strconv.Itoa(ID))
-	req, _ := http.NewRequest("GET", url, nil)
 	i.RUnlock()
-	req.Header = i.h
-	res, httpErr := i.c.Do(req)
-	i.setErr(httpErr)
 
-	dec := json.NewDecoder(res.Body)
-	var jsonErr error
-	if res.StatusCode == 200 {
-		jsonErr = dec.Decode(&v)
-	} else {
-		var v errorResult
-		jsonErr = dec.Decode(&v)
-		i.setErr(apiError(v.Error, res.Status))
-	}
-
-	i.setErr(jsonErr)
+	i.doHTTP("GET", url, nil, &v)
 	return
-}
-
-type allOrdersStatusResult struct {
-	Ok     bool    `json:"ok"`
-	Venue  string  `json:"venue"`
-	Orders []Order `json:"orders"`
 }
 
 //AccountOrderStatus returns the current status for all orders of the current account on the current venue.
@@ -146,27 +89,11 @@ type allOrdersStatusResult struct {
 func (i *Instance) AccountOrderStatus() []Order {
 	i.RLock()
 	url := fmt.Sprintf("%svenues/%s/accounts/%s/orders", baseURL, i.venue, i.account)
-	req, _ := http.NewRequest("GET", url, nil)
 	i.RUnlock()
-	req.Header = i.h
-	res, httpErr := i.c.Do(req)
-	i.setErr(httpErr)
 
-	dec := json.NewDecoder(res.Body)
-	var jsonErr error
-
-	if res.StatusCode == 200 {
-		var v allOrdersStatusResult
-		jsonErr = dec.Decode(&v)
-		return v.Orders
-	}
-
-	var v errorResult
-	jsonErr = dec.Decode(&v)
-	i.setErr(apiError(v.Error, res.Status))
-
-	i.setErr(jsonErr)
-	return nil
+	var v allOrdersStatusResult
+	i.doHTTP("GET", url, nil, &v)
+	return v.Orders
 }
 
 //StockOrderStatus returns the current status for all orders of the current stock on the current venue and account.
@@ -174,25 +101,9 @@ func (i *Instance) AccountOrderStatus() []Order {
 func (i *Instance) StockOrderStatus() []Order {
 	i.RLock()
 	url := fmt.Sprintf("%svenues/%s/accounts/%s/stocks/%s/orders", baseURL, i.venue, i.account, i.symbol)
-	req, _ := http.NewRequest("GET", url, nil)
 	i.RUnlock()
-	req.Header = i.h
-	res, httpErr := i.c.Do(req)
-	i.setErr(httpErr)
 
-	dec := json.NewDecoder(res.Body)
-	var jsonErr error
-
-	if res.StatusCode == 200 {
-		var v allOrdersStatusResult
-		jsonErr = dec.Decode(&v)
-		return v.Orders
-	}
-
-	var v errorResult
-	jsonErr = dec.Decode(&v)
-	i.setErr(apiError(v.Error, res.Status))
-
-	i.setErr(jsonErr)
-	return nil
+	var v allOrdersStatusResult
+	i.doHTTP("GET", url, nil, &v)
+	return v.Orders
 }

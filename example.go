@@ -27,6 +27,14 @@ func main() {
 	quote := i.Quote()
 	prettyPrint("quote:", quote)
 
+	//websocket based calls
+	/*
+		ticker := i.QuotesForVenue()
+		for tick := range ticker {
+			prettyPrint("tick:", ticker)
+		}
+	*/
+
 	/// the following calls need a valid api key
 
 	//make an order

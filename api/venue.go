@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 )
 
@@ -20,7 +21,8 @@ type availableStocksResult struct {
 //See https://starfighter.readme.io/docs/list-stocks-on-venue for further info about the actual API call.
 func (i *Instance) AvailableStocks() []Stock {
 	i.RLock()
-	req, _ := http.NewRequest("GET", baseURL+"venues/"+i.venue+"/stocks", nil)
+	url := fmt.Sprintf("%svenues/%s/stocks", baseURL, i.venue)
+	req, _ := http.NewRequest("GET", url, nil)
 	i.RUnlock()
 	req.Header = i.h
 	res, httpErr := i.c.Do(req)
@@ -48,7 +50,7 @@ func (i *Instance) AvailableStocks() []Stock {
 //See https://starfighter.readme.io/docs/venue-healthcheck for further info about the actual API call.
 func (i *Instance) VenueHeartbeat() bool {
 	i.RLock()
-	urlExtension := "venues/" + i.venue + "/heartbeat"
+	urlExtension := fmt.Sprintf("venues/%s/heartbeat", i.venue)
 	i.RUnlock()
 	return i.heartbeat(urlExtension)
 }

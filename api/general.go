@@ -3,7 +3,7 @@ package api
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"net/http"
 	"sync"
 )
@@ -126,7 +126,7 @@ type errorResult struct {
 //apiError creates an error from an error message and a http status.
 func apiError(str string, status string) error {
 	if str != "" {
-		return errors.New("API: " + status + "; " + str)
+		return fmt.Errorf("API: %s; %s", status, str)
 	}
 	return nil
 }

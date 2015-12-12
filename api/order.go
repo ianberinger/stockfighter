@@ -3,6 +3,7 @@ package api
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -63,7 +64,7 @@ func (i *Instance) NewOrder(price int, quantity int, direction orderDirection, o
 	i.RLock()
 	b, jsonErr := json.Marshal(orderRequest{i.account, i.venue, i.symbol, price, quantity, direction, orderType})
 	i.setErr(jsonErr)
-	url := baseURL + "venues/" + i.venue + "/stocks/" + i.symbol + "/orders"
+	url := fmt.Sprintf("%svenues/%s/stocks/%s/orders", baseURL, i.venue, i.symbol)
 	i.RUnlock()
 	req, _ := http.NewRequest("POST", url, bytes.NewBuffer(b))
 	req.Header = i.h
@@ -88,7 +89,8 @@ func (i *Instance) NewOrder(price int, quantity int, direction orderDirection, o
 //See https://starfighter.readme.io/docs/cancel-an-order for further info about the actual API call.
 func (i *Instance) CancelOrder(ID int) (v Order) {
 	i.RLock()
-	req, _ := http.NewRequest("DELETE", baseURL+"venues/"+i.venue+"/stocks/"+i.symbol+"/orders/"+strconv.Itoa(ID), nil)
+	url := fmt.Sprintf("%svenues/%s/stocks/%s/orders/%s", baseURL, i.venue, i.symbol, strconv.Itoa(ID))
+	req, _ := http.NewRequest("DELETE", url, nil)
 	i.RUnlock()
 	req.Header = i.h
 	res, httpErr := i.c.Do(req)
@@ -112,7 +114,8 @@ func (i *Instance) CancelOrder(ID int) (v Order) {
 //See https://starfighter.readme.io/docs/status-for-an-existing-order for further info about the actual API call.
 func (i *Instance) OrderStatus(ID int) (v Order) {
 	i.RLock()
-	req, _ := http.NewRequest("GET", baseURL+"venues/"+i.venue+"/stocks/"+i.symbol+"/orders/"+strconv.Itoa(ID), nil)
+	url := fmt.Sprintf("%svenues/%s/stocks/%s/orders/%s", baseURL, i.venue, i.symbol, strconv.Itoa(ID))
+	req, _ := http.NewRequest("GET", url, nil)
 	i.RUnlock()
 	req.Header = i.h
 	res, httpErr := i.c.Do(req)
@@ -142,7 +145,8 @@ type allOrdersStatusResult struct {
 //See https://starfighter.readme.io/docs/status-for-all-orders for further info about the actual API call.
 func (i *Instance) AccountOrderStatus() []Order {
 	i.RLock()
-	req, _ := http.NewRequest("GET", baseURL+"venues/"+i.venue+"/accounts/"+i.account+"/orders", nil)
+	url := fmt.Sprintf("%svenues/%s/accounts/%s/orders", baseURL, i.venue, i.account)
+	req, _ := http.NewRequest("GET", url, nil)
 	i.RUnlock()
 	req.Header = i.h
 	res, httpErr := i.c.Do(req)
@@ -169,7 +173,8 @@ func (i *Instance) AccountOrderStatus() []Order {
 //See https://starfighter.readme.io/docs/status-for-all-orders-in-a-stock for further info about the actual API call.
 func (i *Instance) StockOrderStatus() []Order {
 	i.RLock()
-	req, _ := http.NewRequest("GET", baseURL+"venues/"+i.venue+"/accounts/"+i.account+"/stocks/"+i.symbol+"/orders", nil)
+	url := fmt.Sprintf("%svenues/%s/accounts/%s/stocks/%s/orders", baseURL, i.venue, i.account, i.symbol)
+	req, _ := http.NewRequest("GET", url, nil)
 	i.RUnlock()
 	req.Header = i.h
 	res, httpErr := i.c.Do(req)

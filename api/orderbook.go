@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 )
@@ -27,7 +28,8 @@ type Orderbook struct {
 //Returns an empty Oderbook struct if there was an error.
 func (i *Instance) Orderbook() (v Orderbook) {
 	i.RLock()
-	req, _ := http.NewRequest("GET", baseURL+"venues/"+i.venue+"/stocks/"+i.symbol, nil)
+	url := fmt.Sprintf("%svenues/%s/stocks/%s", baseURL, i.venue, i.symbol)
+	req, _ := http.NewRequest("GET", url, nil)
 	i.RUnlock()
 	req.Header = i.h
 	res, httpErr := i.c.Do(req)

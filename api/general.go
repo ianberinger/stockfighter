@@ -95,11 +95,16 @@ func (i *Instance) SetSymbol(symbol string) {
 	i.Unlock()
 }
 
+//SetAPIKey changes the API-Key  of an instance.
+func (i *Instance) SetAPIKey(apiKey string) {
+	i.h.Set("X-Starfighter-Authorization", apiKey)
+}
+
 //NewInstance creates a new API instance based on the given inputs and returns a pointer to it.
-func NewInstance(APIKey, account, venue, symbol string) *Instance {
+func NewInstance(apiKey, account, venue, symbol string) *Instance {
 	// create default header
 	h := http.Header{}
-	h.Add("X-Starfighter-Authorization", APIKey)
+	h.Add("X-Starfighter-Authorization", apiKey)
 
 	return &Instance{http.Client{}, h, err{}, sync.RWMutex{}, account, venue, symbol}
 }

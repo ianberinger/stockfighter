@@ -1,5 +1,5 @@
 # stockfighter
-[![Build Status](https://travis-ci.org/ianberinger/entropy.svg?branch=master)](https://travis-ci.org/ianberinger/entropy) [![GoDoc](https://godoc.org/github.com/ianberinger/stockfighter?status.svg)](https://godoc.org/github.com/ianberinger/stockfighter/api)
+[![Build Status](https://travis-ci.org/ianberinger/stockfighter.svg?branch=master)](https://travis-ci.org/ianberinger/stockfighter) [![GoDoc](https://godoc.org/github.com/ianberinger/stockfighter?status.svg)](https://godoc.org/github.com/ianberinger/stockfighter/api)
 
 API wrapper for stockfighter.io written in Go
 

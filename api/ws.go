@@ -48,7 +48,6 @@ func (i *Instance) wsQuotes(urlExtension string) <-chan Quote {
 	ch := make(chan Quote)
 
 	go func() {
-		fmt.Println(baseWSURL + urlExtension)
 		conn, _, connErr := websocket.DefaultDialer.Dial(baseWSURL+urlExtension, http.Header{})
 		defer close(ch)
 

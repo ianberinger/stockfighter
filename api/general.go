@@ -95,7 +95,7 @@ func (i *Instance) SetSymbol(symbol string) {
 	i.Unlock()
 }
 
-//SetAPIKey changes the API-Key  of an instance.
+//SetAPIKey changes the API-Key of an instance.
 func (i *Instance) SetAPIKey(apiKey string) {
 	i.h.Set("X-Starfighter-Authorization", apiKey)
 }

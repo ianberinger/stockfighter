@@ -7,9 +7,14 @@ import (
 	"github.com/ianberinger/stockfighter/api"
 )
 
+const (
+	apiKey string = ""
+)
+
 func main() {
 	//start a new API instance with test values, use api.NewInstance() for real use
 	i := api.NewTestInstance()
+	i.SetAPIKey(apiKey) //set your API-Key if you want to test the authorization-only API calls.
 
 	//see if the API is up
 	prettyPrint("API is up:", i.Heartbeat())

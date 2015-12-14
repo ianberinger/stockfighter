@@ -2,8 +2,10 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
+	"net/http/httputil"
 )
 
 const (
@@ -21,29 +23,60 @@ type orderRequest struct {
 }
 
 type allOrdersStatusResult struct {
-	Ok     bool    `json:"ok"`
+	ErrorResult
 	Venue  string  `json:"venue"`
 	Orders []Order `json:"orders"`
 }
 
 type availableStocksResult struct {
-	Ok      bool    `json:"ok"`
+	ErrorResult
 	Symbols []Stock `json:"symbols"`
 }
 
-func (i *Instance) doHTTP(httpVerb string, url string, body io.Reader, v interface{}) {
-	req, _ := http.NewRequest(httpVerb, url, body)
+type apiResponse interface {
+	isOk() bool
+	err(status string) error
+}
+
+//ErrorResult gets returned inside every response of an API method.
+//Allows for an alternative way of error checking (without calling i.GetErr()).
+type ErrorResult struct {
+	Ok      bool   `json:"ok"`
+	Message string `json:"error"`
+}
+
+func (e ErrorResult) isOk() bool {
+	return e.Ok
+}
+
+func (e ErrorResult) err(status string) error {
+	str := e.Message
+	if str == "" {
+		str = "no error message"
+	}
+	return fmt.Errorf("API: %s; %s", status, str)
+}
+
+func (i *Instance) doHTTP(httpVerb string, url string, body io.Reader, v apiResponse) {
+	req, err := http.NewRequest(httpVerb, url, body)
 	req.Header = i.h
 
-	res, err := i.c.Do(req)
-	i.setErr(err)
-
-	if res.StatusCode == 200 {
-		err = json.NewDecoder(res.Body).Decode(v)
-	} else {
-		var v errorResult
-		err = json.NewDecoder(res.Body).Decode(&v)
-		i.setErr(apiError(v.Error, res.Status))
+	if i.debug && !i.setErr(err) {
+		reqDump, err := httputil.DumpRequestOut(req, true)
+		i.setErr(err)
+		fmt.Printf("request: %s", reqDump)
 	}
-	i.setErr(err)
+
+	res, err := i.c.Do(req)
+	if i.debug && !i.setErr(err) {
+		resDump, err := httputil.DumpResponse(res, true)
+		i.setErr(err)
+		fmt.Printf("response: %s", resDump)
+	}
+
+	i.setErr(json.NewDecoder(res.Body).Decode(v))
+
+	if !v.isOk() || res.StatusCode != 200 {
+		i.setErr(v.err(res.Status))
+	}
 }

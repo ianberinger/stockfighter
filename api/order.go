@@ -31,6 +31,7 @@ type Fill struct {
 
 //The Order struct contains information about an order.
 type Order struct {
+	ErrorResult
 	Account          string         `json:"account"`
 	Venue            string         `json:"venue"`
 	Symbol           string         `json:"symbol"`

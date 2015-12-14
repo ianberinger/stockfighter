@@ -14,6 +14,7 @@ type MarketRequest struct {
 
 //The Orderbook struct contains everything that gets returned on the Orderbook() API call.
 type Orderbook struct {
+	ErrorResult
 	Venue  string          `json:"venue"`
 	Symbol string          `json:"symbol"`
 	Bids   []MarketRequest `json:"bids"`

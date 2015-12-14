@@ -7,6 +7,7 @@ import (
 
 //The Quote struct contains all data that gets returned on a Quote() call.
 type Quote struct {
+	ErrorResult
 	Venue     string    `json:"venue"`
 	Symbol    string    `json:"symbol"`
 	Bid       int       `json:"bid"`

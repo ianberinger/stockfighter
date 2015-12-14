@@ -2,55 +2,28 @@
 package api
 
 import (
-	"fmt"
 	"net/http"
 	"sync"
 )
 
-type err struct {
-	sync.Mutex
-	v error
-}
-
 //Instance is the basic unit of operation for all API actions.
 type Instance struct {
+	debug bool
 	//not protected by mutex because they don't get touched by us.
 	c http.Client
 	h http.Header
 
-	//protected by it's own mutex
+	//each protected by it's own mutex
 	err err
+	state
+}
 
+type state struct {
 	sync.RWMutex
-	account string
-	venue   string
-	symbol  string
-}
-
-//setErr sets the error value on an instance only when the error isn't nil. Returns true if error was set.
-//This is useful because we don't have to check if the error is nil before calling setErr() if we don't want a current error overwriten by a nil one.
-func (i *Instance) setErr(err error) bool {
-	if err != nil {
-		i.err.Lock()
-		i.err.v = err
-		i.err.Unlock()
-		return true
-	}
-	return false
-}
-
-//Err returns the last error of an API instance.
-func (i *Instance) Err() error {
-	i.err.Lock()
-	defer i.err.Unlock()
-	return i.err.v
-}
-
-//ResetErr resets the error of an API instance to nil.
-func (i *Instance) ResetErr() {
-	i.err.Lock()
-	i.err.v = nil
-	i.err.Unlock()
+	instanceID int
+	account    string
+	venue      string
+	symbol     string
 }
 
 //GetAccount gets the current account of an instance.
@@ -74,6 +47,18 @@ func (i *Instance) GetSymbol() string {
 	return i.symbol
 }
 
+//SetAPIKey changes the API-Key of an instance.
+func (i *Instance) SetAPIKey(apiKey string) {
+	i.h.Set("X-Starfighter-Authorization", apiKey)
+}
+
+//SetInstanceID changes the current instanceID. Waits until all current read operations are completed and blocks while changing.
+func (i *Instance) SetInstanceID(instanceID int) {
+	i.Lock()
+	i.instanceID = instanceID
+	i.Unlock()
+}
+
 //SetAccount changes the current account of an instance. Waits until all current read operations are completed and blocks while changing.
 func (i *Instance) SetAccount(account string) {
 	i.Lock()
@@ -95,18 +80,31 @@ func (i *Instance) SetSymbol(symbol string) {
 	i.Unlock()
 }
 
-//SetAPIKey changes the API-Key of an instance.
-func (i *Instance) SetAPIKey(apiKey string) {
-	i.h.Set("X-Starfighter-Authorization", apiKey)
+//setState sets whole state in one lock op.
+func (i *Instance) setState(instanceID int, account, venue, symbol string) {
+	i.Lock()
+	i.instanceID = instanceID
+	i.account = account
+	i.venue = venue
+	i.symbol = symbol
+	i.Unlock()
 }
 
-//NewInstance creates a new API instance based on the given inputs and returns a pointer to it.
-func NewInstance(apiKey, account, venue, symbol string) *Instance {
-	// create default header
-	h := http.Header{}
-	h.Add("X-Starfighter-Authorization", apiKey)
+//New creates a new API instance without any presets.
+func New(apiKey string) (i *Instance) {
+	i = &Instance{}
+	i.c = http.Client{}
+	i.h = http.Header{}
+	i.SetAPIKey(apiKey)
+	return
+}
 
-	return &Instance{http.Client{}, h, err{}, sync.RWMutex{}, account, venue, symbol}
+//NewInstance creates a new API instance and sets defaults.
+//Shorcut for New() -> SetAccount() -> SetVenue() -> SetSymbol()
+func NewInstance(apiKey, account, venue, symbol string) (i *Instance) {
+	i = New(apiKey)
+	i.setState(0, account, venue, symbol)
+	return
 }
 
 //NewTestInstance calls NewInstance with useful presets for package testing.
@@ -116,25 +114,11 @@ func NewTestInstance() *Instance {
 
 //Heartbeat checks if the API is up and returns true if it is.
 //See: https://starfighter.readme.io/docs/heartbeat for further info about API call.
-func (i *Instance) Heartbeat() bool {
+func (i *Instance) Heartbeat() ErrorResult {
 	return i.heartbeat("heartbeat")
 }
 
-type errorResult struct {
-	Ok    bool   `json:"ok"`
-	Error string `json:"error"`
-}
-
-//apiError creates an error from an error message and a http status.
-func apiError(str string, status string) error {
-	if str != "" {
-		return fmt.Errorf("API: %s; %s", status, str)
-	}
-	return nil
-}
-
-func (i *Instance) heartbeat(urlExtension string) bool {
-	var v errorResult
+func (i *Instance) heartbeat(urlExtension string) (v ErrorResult) {
 	i.doHTTP("GET", baseURL+urlExtension, nil, &v)
-	return v.Ok
+	return
 }

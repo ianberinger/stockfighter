@@ -23,7 +23,7 @@ func (i *Instance) AvailableStocks() []Stock {
 
 //VenueHeartbeat works like Heartbeat() but for the current venue.
 //See https://starfighter.readme.io/docs/venue-healthcheck for further info about the actual API call.
-func (i *Instance) VenueHeartbeat() bool {
+func (i *Instance) VenueHeartbeat() ErrorResult {
 	i.RLock()
 	urlExtension := fmt.Sprintf("venues/%s/heartbeat", i.venue)
 	i.RUnlock()

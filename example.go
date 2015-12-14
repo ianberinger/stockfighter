@@ -34,9 +34,9 @@ func main() {
 
 	//websocket based calls
 	/*
-		ticker := i.QuotesForVenue()
-		for tick := range ticker {
-			prettyPrint("tick:", ticker)
+		stream := i.Quotes(false)
+		for tick := range stream.Values {
+			prettyPrint("tick:", tick)
 		}
 	*/
 
@@ -44,8 +44,8 @@ func main() {
 
 	//make an order
 	order := i.NewOrder(quote.LastPrice, 100, api.Buy, api.Limit)
-	if i.Err() != nil {
-		prettyPrint("we got an error:", i.Err())
+	if err := i.GetErr(); err != nil {
+		prettyPrint("we got an error:", err)
 	} else {
 		prettyPrint("created order:", order)
 		//see status of order

@@ -14,12 +14,68 @@ const (
 )
 
 type wsQuote struct {
-	Ok    bool  `json:"ok"`
+	ErrorResult
 	Quote Quote `json:"quote"`
+}
+
+type streamer interface {
+	Stop()
+	Stopped() bool
+	add(interface{})
+	close()
+}
+
+//QuoteStream contains a Values chan which streams Quotes. Implements streamer interface.
+type QuoteStream struct {
+	Values chan Quote
+	stop   bool
+}
+
+//Stop stops the Stream.
+func (s *QuoteStream) Stop() {
+	s.stop = true
+}
+
+//Stopped returns true if the stream was stopped.
+func (s *QuoteStream) Stopped() bool {
+	return s.stop
+}
+
+func (s *QuoteStream) add(v interface{}) {
+	s.Values <- v.(*wsQuote).Quote
+}
+
+func (s *QuoteStream) close() {
+	close(s.Values)
+}
+
+//ExecutionStream contains a Values chan which streams Executions. Implements streamer interface.
+type ExecutionStream struct {
+	Values chan Execution
+	stop   bool
+}
+
+//Stop stops the Stream.
+func (s *ExecutionStream) Stop() {
+	s.stop = true
+}
+
+//Stopped returns true if the stream was stopped.
+func (s *ExecutionStream) Stopped() bool {
+	return s.stop
+}
+
+func (s *ExecutionStream) add(v interface{}) {
+	s.Values <- *v.(*Execution)
+}
+
+func (s *ExecutionStream) close() {
+	close(s.Values)
 }
 
 //The Execution struct gets only returned by websocket based calls.
 type Execution struct {
+	ErrorResult
 	Order            Order     `json:"order"`
 	StandingID       int       `json:"standingId"`
 	IncomingID       int       `json:"incomingId"`
@@ -30,91 +86,54 @@ type Execution struct {
 	IncomingComplete bool      `json:"incomingComplete"`
 }
 
-//QuotesForVenue returns a channel which streams all quotes for all symbols on the current venue.
-//See https://starfighter.readme.io/docs/quotes-ticker-tape-websocket for further info about API call.
-func (i *Instance) QuotesForVenue() <-chan Quote {
-	urlExtension := fmt.Sprintf("%s/venues/%s/tickertape", i.account, i.venue)
-	return i.wsQuotes(urlExtension)
+func (i *Instance) wsURL(method string, stockOnly bool) string {
+	if stockOnly {
+		return fmt.Sprintf("%s%s/venues/%s/%s/stocks/%s", baseWSURL, i.account, i.venue, method, i.symbol)
+	}
+	return fmt.Sprintf("%s%s/venues/%s/%s", baseWSURL, i.account, i.venue, method)
 }
 
-//QuotesForStock returns a channel which streams all quotes for the current symbol on the current venue.
+//Quotes returns a stream which streams all quotes for the current venue or only the current stock.
+//A stream can be terminated with: stream.Stop()
 //See https://starfighter.readme.io/docs/quotes-ticker-tape-websocket for further info about API call.
-func (i *Instance) QuotesForStock() <-chan Quote {
-	urlExtension := fmt.Sprintf("%s/venues/%s/tickertape/stocks/%s", i.account, i.venue, i.symbol)
-	return i.wsQuotes(urlExtension)
+func (i *Instance) Quotes(stockOnly bool) *QuoteStream {
+	s := &QuoteStream{make(chan Quote), false}
+	go i.doWS(s, i.wsURL("tickertape", stockOnly), &wsQuote{})
+	return s
 }
 
-func (i *Instance) wsQuotes(urlExtension string) <-chan Quote {
-	ch := make(chan Quote)
+//Executions returns a stream which streams all executions for the current venue or only the current stock.
+//A stream can be terminated with: stream.Stop()
+//See https://starfighter.readme.io/docs/executions-fills-websocket for further info about API call.
+func (i *Instance) Executions(stockOnly bool) *ExecutionStream {
+	s := &ExecutionStream{make(chan Execution), false}
+	go i.doWS(s, i.wsURL("executions", stockOnly), &Execution{})
+	return s
+}
 
-	go func() {
-		conn, _, connErr := websocket.DefaultDialer.Dial(baseWSURL+urlExtension, http.Header{})
-		defer close(ch)
-
-		if connErr != nil {
-			i.setErr(connErr)
-		} else {
-			//reuse variables
-			var v wsQuote
-			var jsonErr error
-
-			for {
-				jsonErr = conn.ReadJSON(&v)
-				fmt.Println(v)
-				if jsonErr != nil {
-					conn.Close()
-					i.setErr(jsonErr)
-					break
-				}
-				ch <- v.Quote
-			}
-		}
+func (i *Instance) doWS(s streamer, url string, v apiResponse) {
+	conn, _, connErr := websocket.DefaultDialer.Dial(url, http.Header{})
+	defer func() {
+		conn.Close()
+		s.close()
 	}()
 
-	return ch
-}
+	fmt.Println("doWS:", url)
 
-//ExecutionsForVenue returns a channel which streams all executions concerning the current account & venue.
-//See https://starfighter.readme.io/docs/executions-fills-websocket for further info about API call.
-func (i *Instance) ExecutionsForVenue() <-chan Execution {
-	urlExtension := fmt.Sprintf("%s/venues/%s/executions", i.account, i.venue)
-	return i.wsExecutions(urlExtension)
-}
-
-//ExecutionsForStock returns a channel which streams all executions concerning the current account, venue and symbol.
-//See https://starfighter.readme.io/docs/executions-fills-websocket for further info about API call.
-func (i *Instance) ExecutionsForStock() <-chan Execution {
-	urlExtension := fmt.Sprintf("%s/venues/%s/executions/stocks/%s", i.account, i.venue, i.symbol)
-	return i.wsExecutions(urlExtension)
-}
-
-func (i *Instance) wsExecutions(urlExtension string) <-chan Execution {
-	ch := make(chan Execution)
-
-	go func() {
-		conn, _, connErr := websocket.DefaultDialer.Dial(baseWSURL+urlExtension, http.Header{})
-		defer func() {
-			conn.Close()
-			close(ch)
-		}()
-
-		if connErr != nil {
-			i.setErr(connErr)
-		} else {
-			//reuse variables
-			var v Execution
-			var jsonErr error
-
-			for {
-				jsonErr = conn.ReadJSON(&v)
-				if jsonErr != nil {
-					i.setErr(jsonErr)
-					break
-				}
-				ch <- v
+	if !i.setErr(connErr) {
+		fmt.Println("no conn err")
+		for !i.setErr(conn.ReadJSON(v)) {
+			fmt.Println("gotV:", v)
+			fmt.Println("v.isOK:", v.isOk(), "s.Stopped:", s.Stopped())
+			if v.isOk() && !s.Stopped() {
+				fmt.Println("adding v")
+				s.add(v)
+			} else {
+				i.setErr(v.err("WS"))
+				s.Stop()
+				break
 			}
 		}
-	}()
-
-	return ch
+		fmt.Println("ERR:", i.GetErr())
+	}
 }

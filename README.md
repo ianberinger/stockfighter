@@ -1,12 +1,14 @@
 # stockfighter
 [![Build Status](https://travis-ci.org/ianberinger/stockfighter.svg?branch=master)](https://travis-ci.org/ianberinger/stockfighter) [![GoDoc](https://godoc.org/github.com/ianberinger/stockfighter?status.svg)](https://godoc.org/github.com/ianberinger/stockfighter/api)
 
-API wrapper for stockfighter.io written in Go
+Stateful API client for stockfighter.io written in Go
 
-Currently only based on their documentation (https://starfighter.readme.io) and not tested beyond what's in [example.go](./example.go).
+Implements all Trade API calls from the documentation (https://starfighter.readme.io) and some of the GameMaster API calls.
+
+Trade API calls are tested and work, GM API calls should mostly work.
 
 ### Usage
-You can use the api wrapper in your own Go packages:
+You can use the API client in your own Go packages:
 
 	import "github.com/ianberinger/stockfighter/api"
 

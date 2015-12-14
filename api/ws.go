@@ -118,15 +118,9 @@ func (i *Instance) doWS(s streamer, url string, v apiResponse) {
 		s.close()
 	}()
 
-	fmt.Println("doWS:", url)
-
 	if !i.setErr(connErr) {
-		fmt.Println("no conn err")
 		for !i.setErr(conn.ReadJSON(v)) {
-			fmt.Println("gotV:", v)
-			fmt.Println("v.isOK:", v.isOk(), "s.Stopped:", s.Stopped())
 			if v.isOk() && !s.Stopped() {
-				fmt.Println("adding v")
 				s.add(v)
 			} else {
 				i.setErr(v.err("WS"))
@@ -134,6 +128,5 @@ func (i *Instance) doWS(s streamer, url string, v apiResponse) {
 				break
 			}
 		}
-		fmt.Println("ERR:", i.GetErr())
 	}
 }

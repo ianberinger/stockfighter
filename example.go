@@ -46,7 +46,7 @@ func main() {
 	//make an order
 	order := i.NewOrder(quote.LastPrice, 100, api.Buy, api.Limit)
 	if err := i.GetErr(); err != nil {
-		prettyPrint("we got an error:", err)
+		fmt.Println("we got an error:", err)
 	} else {
 		prettyPrint("created order:", order)
 		//see status of order

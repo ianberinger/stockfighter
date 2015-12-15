@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"time"
 
@@ -59,5 +60,6 @@ func main() {
 }
 
 func prettyPrint(description, v interface{}) {
-	fmt.Printf("%s %+v\n", description, v)
+	x, _ := json.MarshalIndent(v, "", "    ")
+	fmt.Printf("%s %+v\n", description, string(x))
 }

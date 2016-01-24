@@ -86,11 +86,11 @@ type Execution struct {
 	IncomingComplete bool      `json:"incomingComplete"`
 }
 
-func (i *Instance) wsURL(method string, stockOnly bool) string {
+func (i *Instance) wsURL(method string, stockOnly bool, account string) string {
 	if stockOnly {
-		return fmt.Sprintf("%s%s/venues/%s/%s/stocks/%s", baseWSURL, i.account, i.venue, method, i.symbol)
+		return fmt.Sprintf("%s%s/venues/%s/%s/stocks/%s", baseWSURL, account, i.venue, method, i.symbol)
 	}
-	return fmt.Sprintf("%s%s/venues/%s/%s", baseWSURL, i.account, i.venue, method)
+	return fmt.Sprintf("%s%s/venues/%s/%s", baseWSURL, account, i.venue, method)
 }
 
 //Quotes returns a stream which streams all quotes for the current venue or only the current stock.
@@ -98,16 +98,17 @@ func (i *Instance) wsURL(method string, stockOnly bool) string {
 //See https://starfighter.readme.io/docs/quotes-ticker-tape-websocket for further info about API call.
 func (i *Instance) Quotes(stockOnly bool) *QuoteStream {
 	s := &QuoteStream{make(chan Quote), false}
-	go i.doWS(s, i.wsURL("tickertape", stockOnly), &wsQuote{})
+	go i.doWS(s, i.wsURL("tickertape", stockOnly, i.account), &wsQuote{})
 	return s
 }
 
 //Executions returns a stream which streams all executions for the current venue or only the current stock.
+//Authentication is done with the account number
 //A stream can be terminated with: stream.Stop()
 //See https://starfighter.readme.io/docs/executions-fills-websocket for further info about API call.
-func (i *Instance) Executions(stockOnly bool) *ExecutionStream {
+func (i *Instance) Executions(stockOnly bool, account string) *ExecutionStream {
 	s := &ExecutionStream{make(chan Execution), false}
-	go i.doWS(s, i.wsURL("executions", stockOnly), &Execution{})
+	go i.doWS(s, i.wsURL("executions", stockOnly, account), &Execution{})
 	return s
 }
 

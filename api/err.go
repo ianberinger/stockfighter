@@ -19,7 +19,7 @@ func apiError(str string, status string) error {
 }
 
 //setErr sets the error value on an instance only when the error isn't nil. Returns true if error was set.
-//This is useful because we don't have to check if the error is nil before calling setErr() if we don't want a current error overwriten by a nil one.
+//This is useful because we don't have to check if the error is nil before calling setErr() if we don't want a current error overwritten by a nil one.
 func (i *Instance) setErr(err error) bool {
 	if err != nil {
 		if i.debug {

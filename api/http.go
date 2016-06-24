@@ -8,7 +8,7 @@ import (
 	"net/http/httputil"
 )
 
-const (
+var (
 	baseURL string = "https://api.stockfighter.io/ob/api/"
 )
 
@@ -43,6 +43,10 @@ type apiResponse interface {
 type ErrorResult struct {
 	Ok      bool   `json:"ok"`
 	Message string `json:"error"`
+}
+
+func SetBaseURL(URL string) {
+	baseURL = URL
 }
 
 func (e ErrorResult) isOk() bool {

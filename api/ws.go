@@ -9,7 +9,7 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-const (
+var (
 	baseWSURL string = "wss://api.stockfighter.io/ob/api/ws/"
 )
 
@@ -29,6 +29,10 @@ type streamer interface {
 type QuoteStream struct {
 	Values chan Quote
 	stop   bool
+}
+
+func SetBaseWSURL(URL string) {
+	baseWSURL = URL
 }
 
 //Stop stops the Stream.
